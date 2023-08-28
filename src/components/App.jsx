@@ -1,12 +1,13 @@
 // ======= Рефакторинг коду з використанням React-хуків ========
 // import React, { Component } from 'react';
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Searchbar } from './Searchbar/Searchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Button } from './Button/Button';
 import { CustomLoader } from './Loader/Loader';
-import { Modal } from './Modal/Modal'; 
+import { Modal } from './Modal/Modal';
 
 const API_KEY = '38934998-3e855f71d85cefaf04a1d7456';
 const BASE_URL = 'https://pixabay.com/api/';
@@ -19,14 +20,14 @@ export const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [largeImageURL, setLargeImageURL] = useState('');
-  const [prevQuery, setPrevQuery] = useState('');
-  const [prevPage, setPrevPage] = useState(1);
+  const [prevQuery, setPrevQuery] = useState(''); // Додано для збереження попереднього пошукового запиту
+  const [prevPage, setPrevPage] = useState(1);    // Додано для збереження попередньої сторінки
 
   useEffect(() => {
     if (prevQuery !== query || prevPage !== page) {
       fetchImages();
     }
-  }, [query, page, prevQuery, prevPage]);
+  }, [query, page]);
 
   const fetchImages = () => {
     setIsLoading(true);
@@ -37,13 +38,15 @@ export const App = () => {
       )
       .then(response => {
         setImages(prevImages => [...prevImages, ...response.data.hits]);
+        setPrevQuery(query); // Збереження попереднього запиту
+        setPrevPage(page);   // Збереження попередньої сторінки
       })
       .finally(() => setIsLoading(false));
   };
 
   const handleSearchSubmit = newQuery => {
     if (query === newQuery) {
-      alert(`You are already viewing results for ${newQuery}`);
+      alert(`You are already viewing results for ${query}`);
       return;
     }
 
@@ -52,9 +55,21 @@ export const App = () => {
     setPage(1);
   };
 
-  const toggleModal = (newLargeImageURL = '') => {
+  const toggleModal = (largeImageURL = '') => {
     setShowModal(prevShowModal => !prevShowModal);
-    setLargeImageURL(newLargeImageURL);
+    setLargeImageURL(largeImageURL);
+  };
+
+  const handleKeyDown = event => {
+    if (event.code === 'Escape') {
+      toggleModal();
+    }
+  };
+
+  const handleOverlayClick = event => {
+    if (event.target === event.currentTarget) {
+      toggleModal();
+    }
   };
 
   const handleLoadMore = () => {
@@ -66,11 +81,9 @@ export const App = () => {
       <Searchbar onSubmit={handleSearchSubmit} />
       <ImageGallery images={images} onImageClick={toggleModal} />
       {isLoading && <CustomLoader />}
-      {images.length > 0 && !isLoading && 
-        <Button onClick={handleLoadMore}>
-          Load More
-        </Button>
-      }
+      {images.length > 0 && !isLoading && (
+        <Button onClick={handleLoadMore}>Load More</Button>
+      )}
       {showModal && (
         <Modal onClose={toggleModal} largeImageURL={largeImageURL}>
           <img src={largeImageURL} alt="" />
