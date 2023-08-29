@@ -1,11 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 
 export function Modal({ image, onClose }) {
-  const handleKeyDown = e => {
+  const handleKeyDown = useCallback (e => {
     if (e.code === 'Escape') {
       onClose();
     }
-  };
+  },
+  [onClose]
+  );
 
   const handleOverlayClick = e => {
     if (e.target === e.currentTarget) {
