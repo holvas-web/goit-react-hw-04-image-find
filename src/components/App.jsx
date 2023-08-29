@@ -2,96 +2,65 @@
 // import React, { Component } from 'react';
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { Searchbar } from './Searchbar/Searchbar';
-import { ImageGallery } from './ImageGallery/ImageGallery';
-import { Button } from './Button/Button';
-import { CustomLoader } from './Loader/Loader';
-import { Modal } from './Modal/Modal';
+import SearchBar from './SearchBar';
+import ImageGallery from './ImageGallery';
+import Button from './Button';
+import Modal from './Modal';
+import Loader from './Loader';
+import fetchImages from '../services/fetchImages';
 
-const API_KEY = '38934998-3e855f71d85cefaf04a1d7456';
-const BASE_URL = 'https://pixabay.com/api/';
-const PER_PAGE = 12;
-
-export const App = () => {
+export function App() {
   const [images, setImages] = useState([]);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [largeImageURL, setLargeImageURL] = useState('');
-  const [prevQuery, setPrevQuery] = useState(''); // Додано для збереження попереднього пошукового запиту
-  const [prevPage, setPrevPage] = useState(1);    // Додано для збереження попередньої сторінки
 
   useEffect(() => {
-    if (prevQuery !== query || prevPage !== page) {
-      fetchImages();
-    }
+    if (!query) return;
+
+    const fetchImagesData = async () => {
+      setIsLoading(true);
+      const newImages = await fetchImages(query, page);
+      setImages(prevImages => [...prevImages, ...newImages]);
+      setIsLoading(false);
+    };
+
+    fetchImagesData();
   }, [query, page]);
 
-  const fetchImages = () => {
-    setIsLoading(true);
-
-    axios
-      .get(
-        `${BASE_URL}?q=${query}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=${PER_PAGE}`
-      )
-      .then(response => {
-        setImages(prevImages => [...prevImages, ...response.data.hits]);
-        setPrevQuery(query); // Збереження попереднього запиту
-        setPrevPage(page);   // Збереження попередньої сторінки
-      })
-      .finally(() => setIsLoading(false));
-  };
-
-  const handleSearchSubmit = newQuery => {
-    if (query === newQuery) {
-      alert(`You are already viewing results for ${query}`);
-      return;
-    }
-
+  const handleSearchFormSubmit = newQuery => {
     setQuery(newQuery);
-    setImages([]);
     setPage(1);
+    setImages([]);
   };
 
-  const toggleModal = (largeImageURL = '') => {
-    setShowModal(prevShowModal => !prevShowModal);
-    setLargeImageURL(largeImageURL);
-  };
-
-  const handleKeyDown = event => {
-    if (event.code === 'Escape') {
-      toggleModal();
-    }
-  };
-
-  const handleOverlayClick = event => {
-    if (event.target === event.currentTarget) {
-      toggleModal();
-    }
-  };
-
-  const handleLoadMore = () => {
+  const handleLoadMoreClick = () => {
     setPage(prevPage => prevPage + 1);
   };
 
+  const handleImageClick = image => {
+    setSelectedImage(image);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedImage(null);
+  };
+
   return (
-    <div className="App">
-      <Searchbar onSubmit={handleSearchSubmit} />
-      <ImageGallery images={images} onImageClick={toggleModal} />
-      {isLoading && <CustomLoader />}
+    <div>
+      <SearchBar onSubmit={handleSearchFormSubmit} />
+      <ImageGallery images={images} onImageClick={handleImageClick} />
+      {isLoading && <Loader />}
       {images.length > 0 && !isLoading && (
-        <Button onClick={handleLoadMore}>Load More</Button>
+        <Button onClick={handleLoadMoreClick} />
       )}
-      {showModal && (
-        <Modal onClose={toggleModal} largeImageURL={largeImageURL}>
-          <img src={largeImageURL} alt="" />
-        </Modal>
+      {selectedImage && (
+        <Modal image={selectedImage} onClose={handleCloseModal} />
       )}
     </div>
   );
-};
+}
 
 
 //=========== Попередній код ===========
